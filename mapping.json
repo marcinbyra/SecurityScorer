@@ -1,0 +1,85 @@
+{
+  "name": "Model mapper for threat evaluation in BIECO",
+  "version": "example for PetClinic test app",
+  "threats": [
+    {
+      "name": "Tampering",
+      "impact": 10
+    },
+    {
+      "name": "InformationDisclosure",
+      "impact": 1000
+    },
+    {
+      "name": "DenialOfService",
+      "impact": 10
+    },
+    {
+      "name": "Spoofing",
+      "impact": 10
+    },
+    {
+      "name": "Repudiation",
+      "impact": 1
+    }
+  ],
+  "test_to_threats_mapping": [
+    {
+      "test_name": "FindOwnersTest",
+      "threats": [
+        {
+          "name": "Tampering",
+          "weight": 0.4
+        },
+        {
+          "name": "InformationDisclosure",
+          "weight": 0.6
+        }
+      ]
+    },
+    {
+      "test_name": "NewOwnerTest",
+      "threats": [
+        {
+          "name": "InformationDisclosure",
+          "weight": 0.5
+        },
+        {
+          "name": "Spoofing",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "test_name": "OwnerInformationTest",
+      "threats": [
+        {
+          "name": "InformationDisclosure",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "test_name": "PetClinicTest",
+      "threats": [
+        {
+          "name": "Repudiation",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "test_name": "VeterinariansTest",
+      "threats": [
+        {
+          "name": "InformationDisclosure",
+          "weight": 0.3
+        },
+        {
+          "name": "DenialOfService",
+          "weight": 0.7
+        }
+      ]
+    }
+  ]
+}
