@@ -6,7 +6,7 @@ Its purpose is to parse and process the output of other tools that are responsib
 
 ![securityScorerArchitecture](Images/SecurityScorer_architecture.png?raw=true)
 
-### How to use
+### How to use as CLI
 At the moment, SecurityScorer works only for a GraphWalker output and requires some additional user input. Exemplary files can be found in this repository. To run using these files, type:
 
 `python security_scorer.py -m mapping_json_file -r results_xml_file`
@@ -14,3 +14,23 @@ At the moment, SecurityScorer works only for a GraphWalker output and requires s
 for example:
 
 `python security_scorer.py -m mapping.json -r TEST-GraphWalker-20210831T230909449.xml`
+
+## How to use in browser
+Create a new virtualenv:
+
+```python3 -m venv /path/to/new/virtual/environment```
+
+Activate the virtualenv:
+
+```source /path/to/new/virtual/environment/bin/activate```
+
+Install the requirements:
+
+```pip install -r requirements.txt```
+
+Run the server:
+
+```uvicorn main:app --reload```
+
+Note: you have to upload mapping file and results file before requesting risk evaluation. Only `graphwalker` module 
+is supported at the moment. 
