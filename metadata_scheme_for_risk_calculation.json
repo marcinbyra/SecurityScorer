@@ -1,0 +1,110 @@
+{
+  "tests": {
+    "test_1_inside_vulnerability_1": "",
+    "test_2_inside_vulnerability_1": "",
+    "test_1_inside_vulnerability_2": "",
+    "test_1_inside_vulnerability_3": "",
+    "test_2_inside_vulnerability_3": "",
+    "test_for_the_whole_claim_1": "",
+    "test_for_the_whole_claim_2": ""
+  },
+  "vulnerabilities": {
+    "vulnerability_1": {
+      "tests": [
+        "test_1_inside_vulnerability_1",
+        "test_2_inside_vulnerability_1"
+      ]
+    },
+    "vulnerability_2": {
+      "tests": [
+        "test_1_inside_vulnerability_2"
+      ]
+    },
+    "vulnerability_3": {
+      "tests": [
+        "test_1_inside_vulnerability_3",
+        "test_2_inside_vulnerability_3"
+      ]
+    }
+  },
+  "claims": {
+    "claim_1": {
+      "vulnerabilities": [
+        "vulnerability_1",
+        "vulnerability_2"
+      ],
+      "tests": [
+        "test_for_the_whole_claim_1"
+      ]
+    },
+    "claim_2": {
+      "vulnerabilities": [
+        "vulnerability_2",
+        "vulnerability_3"
+      ],
+      "tests": [
+        "test_for_the_whole_claim_2"
+      ]
+    },
+    "claim_3": {
+      "vulnerabilities": [],
+      "tests": [
+        "test_for_the_whole_claim_1",
+        "test_for_the_whole_claim_2"
+      ]
+    }
+  },
+  "components": {
+    "component_1": {
+      "claims": [
+        "claim_1"
+      ]
+    },
+    "component_2": {
+      "claims": [
+        "claim_2",
+        "claim_3"
+      ]
+    },
+    "component_3": {
+      "claims": [
+        "claim_3"
+      ]
+    }
+  },
+  "system_risks": {
+    "integrity": {
+      "components": [
+        "component_1",
+        "component_2"
+      ]
+    },
+    "confidentiality": {
+      "components": [
+        "component_1"
+      ]
+    },
+    "availability": {
+      "components": [
+        "component_2"
+      ]
+    },
+    "authorization": {
+      "components": [
+        "component_1",
+        "component_3"
+      ]
+    },
+    "authentication": {
+      "components": [
+        "component_2",
+        "component_3"
+      ]
+    },
+    "non_repudiation": {
+      "components": [
+        "component_3"
+      ]
+    }
+  }
+}

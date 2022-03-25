@@ -2,6 +2,60 @@ import getopt
 import json
 import sys
 import xml.etree.ElementTree as ET
+from os.path import exists
+
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from pydantic import BaseModel, BaseSettings
+
+
+class Settings(BaseSettings):
+    default_mapping_filename: str = "mappingUploaded.json"
+    default_results_filename: str = "testResultsUploaded.xml"
+
+
+settings = Settings()
+
+app = FastAPI()
+
+
+class RiskEvaluation(BaseModel):
+    module: str
+
+
+def save_file(filename, data):
+    with open(filename, 'wb') as f:
+        f.write(data)
+
+
+@app.post("/upload_mapping")
+async def upload_mapping(mapping_file: UploadFile = File(...)):
+    contents = await mapping_file.read()
+    save_file(settings.default_mapping_filename, contents)
+    return {"Filename": "mappingUploaded.json"}
+
+
+@app.post("/upload_test_results")
+async def upload_test_results(test_file: UploadFile = File(...)):
+    contents = await test_file.read()
+    save_file(settings.default_results_filename, contents)
+    return {"Filename": "testResultsUploaded.xml"}
+
+
+@app.post("/risk_evaluation")
+async def risk_evaluation(risk_evaluation: RiskEvaluation):
+    if not exists(settings.default_mapping_filename):
+        raise HTTPException(status_code=400, detail="Mapping not uploaded")
+    if not exists(settings.default_results_filename):
+        raise HTTPException(status_code=400, detail="Test results not uploaded")
+    if risk_evaluation.module not in ["fuzzing", "graphwalker"]:
+        raise HTTPException(status_code=400, detail="Please use one of supported modules (fuzzing, graphwalker)")
+
+    if risk_evaluation.module == "fuzzing":
+        return {"result": "Fuzzing is not supported in this demo"}
+
+    else:
+        result = optimize(risk_evaluation.module, settings.default_mapping_filename, settings.default_results_filename)
+    return {"result": result}
 
 
 def auto_str(cls):
@@ -10,6 +64,7 @@ def auto_str(cls):
             type(self).__name__,
             ',\n '.join('\n%s=%s' % item for item in vars(self).items())
         )
+
     cls.__str__ = __str__
     return cls
 
@@ -121,6 +176,7 @@ def get_list_of_all_threats_in_mapping(model_to_threats_mapping_list):
             threats.append(threat)
     return sorted(threats)
 
+
 # reads a mapping from file
 def read_mapping(filename):
     f = open(filename, "r")
@@ -171,21 +227,23 @@ def read_results(filename):
 
 
 def print_usage():
-    print ("Usage: python threat_evaluator -m mapping_json_file -r results_xmi_file")
+    print("Usage: python threat_evaluator -M module -m mapping_json_file -r results_xmi_file")
+    print("Supported modules: graphwalker, fuzzing")
 
 
 def parse_arguments():
     MAPPING_FILE_PATH = ""
     RESULTS_FILE_PATH = ""
+    MODULE_NAME = ""
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "hm:r:"
-    long_options = ["help", "mapping=", "results="]
+    short_options = "hM:m:r:"
+    long_options = ["help", "Module=", "mapping=", "results="]
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
     except getopt.error as err:
         # Output error, and return with an error code
-        print (str(err))
+        print(str(err))
         print_usage()
         sys.exit(2)
     for current_argument, current_value in arguments:
@@ -195,12 +253,14 @@ def parse_arguments():
             RESULTS_FILE_PATH = current_value
         elif current_argument in ("-m", "--mapping"):
             MAPPING_FILE_PATH = current_value
+        elif current_argument in ("-M", "--Module"):
+            MODULE_NAME = current_value
 
-    if RESULTS_FILE_PATH == "" or MAPPING_FILE_PATH == "":
+    if RESULTS_FILE_PATH == "" or MAPPING_FILE_PATH == "" or MODULE_NAME not in ("graphwalker", "fuzzing"):
         print_usage()
         sys.exit(2)
 
-    return MAPPING_FILE_PATH, RESULTS_FILE_PATH
+    return MODULE_NAME, MAPPING_FILE_PATH, RESULTS_FILE_PATH
 
 
 class FinalResult:
@@ -221,7 +281,7 @@ def create_final_results(model_to_threats_mapping, threats_general, results):
     final_results = []
 
     for mapping in model_to_threats_mapping:
-        found_results = list(filter(lambda result : result.test_name == mapping.test_name, results))
+        found_results = list(filter(lambda result: result.test_name == mapping.test_name, results))
         if len(found_results) > 1:
             print("ERROR! More than two test cases in results matching a single test case in mapping: " +
                   mapping.test_name + "!")
@@ -260,21 +320,16 @@ def calculate_value(threats, failures, errors):
 
     return value
 
-if __name__ == '__main__':
-    mapping_file_path, results_file_path = parse_arguments()
 
-    print("""  ___                  _ _        ___                     
- / __| ___ __ _  _ _ _(_) |_ _  _/ __| __ ___ _ _ ___ _ _ 
- \__ \/ -_) _| || | '_| |  _| || \__ \/ _/ _ \ '_/ -_) '_|
- |___/\___\__|\_,_|_| |_|\__|\_, |___/\__\___/_| \___|_|  
-                             |__/                         """)
+def optimize(module: str, mapping_file_path: str, results_file_path: str):
+    print("\nSecurityScorer: " + module + " module started")
 
     print("\nParsing mapping file...")
     name, version, threats_list, model_to_threats_mapping = read_mapping(mapping_file_path)
     print("\tname: " + name + "\n\tversion: " + version)
     print("\tList of threats existing in this mapping:")
     for threat in threats_list:
-        print("\t\t"+ str(threat))
+        print("\t\t" + str(threat))
 
     print("\tMapping:")
     for mapping in model_to_threats_mapping:
@@ -292,10 +347,20 @@ if __name__ == '__main__':
 
     print("\nCalculating final results...")
     final_results = create_final_results(model_to_threats_mapping, threats_list, results)
-    sumarized_value = sum([result.value for result in final_results])
+    summarized_value = sum([result.value for result in final_results])
 
     print("Done calculating final results.")
-    print("\n**************************\nCalculated value is: " + str(sumarized_value) + "\n**************************")
+    print(
+        "\n**************************\nCalculated value is: " + str(summarized_value) + "\n**************************")
+
+    return summarized_value
 
 
-
+if __name__ == '__main__':
+    module, mapping_file_path, results_file_path = parse_arguments()
+    optimize(module, mapping_file_path, results_file_path)
+    print("""  ___                  _ _        ___                     
+ / __| ___ __ _  _ _ _(_) |_ _  _/ __| __ ___ _ _ ___ _ _ 
+ \__ \/ -_) _| || | '_| |  _| || \__ \/ _/ _ \ '_/ -_) '_|
+ |___/\___\__|\_,_|_| |_|\__|\_, |___/\__\___/_| \___|_|  
+                             |__/                         """)
